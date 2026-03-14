@@ -210,6 +210,11 @@ function getGroupedData() {
         const hrs = Math.floor(totalMinutes / 60);
         const mins = totalMinutes % 60;
         group.totalStr = `${hrs}h ${mins}m`;
+        
+        // Cálculo de Pago (NUEVO)
+        const hourlyRate = 70;
+        group.payment = (totalMinutes / 60) * hourlyRate;
+        
         group.timeline = timelineText.join(" | ");
         return group;
     }).reverse(); // Revertir para mostrar lo más reciente arriba
@@ -225,6 +230,7 @@ function renderAdminLogs() {
             <td>${row.date}</td>
             <td style="font-size: 0.8rem;">${row.timeline}</td>
             <td style="font-weight:bold; color:var(--primary)">${row.totalStr}</td>
+            <td style="font-weight:bold; color:var(--success)">$${row.payment.toFixed(2)}</td>
         `;
         adminLogsBody.appendChild(tr);
     });
@@ -247,10 +253,10 @@ function renderAdminEmployees() {
 function exportToCSV() {
     const data = getGroupedData();
     if (data.length === 0) { showNotification("Sin datos", "danger"); return; }
-    let csv = "Empleado,ID,Fecha,Eventos,Total Tiempo\n";
+    let csv = "Empleado,ID,Fecha,Eventos,Total Tiempo,Pago ($70/hr)\n";
     data.forEach(r => {
         const cleanEvents = r.timeline.replace(/<[^>]*>/g, '');
-        csv += `"${r.name}","${r.id}","${r.date}","${cleanEvents}","${r.totalStr}"\n`;
+        csv += `"${r.name}","${r.id}","${r.date}","${cleanEvents}","${r.totalStr}","$${r.payment.toFixed(2)}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
