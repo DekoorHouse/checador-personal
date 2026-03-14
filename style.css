@@ -271,8 +271,160 @@ input:focus {
 .network-modal {
     background: #1e293b;
     padding: 30px;
-    border-radius: 20px;
+    border-radius: 24px;
     max-width: 400px;
     width: 90%;
     text-align: center;
+    border: 1px solid var(--glass-border);
+}
+
+/* Admin Specific */
+.admin-access {
+    margin-top: 30px;
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.admin-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.admin-modal {
+    background: #1e293b;
+    width: 95%;
+    max-width: 700px;
+    height: 85vh;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    overflow: hidden;
+    animation: zoomIn 0.3s ease-out;
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 10px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.tab-btn.active {
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+}
+
+.tab-content {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.tab-content.active {
+    display: flex;
+}
+
+.table-container {
+    flex: 1;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th {
+    text-align: left;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.btn-small {
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+}
+
+.btn-danger {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+.add-employee-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.add-employee-form input {
+    padding: 10px;
+    font-size: 0.9rem;
 }

@@ -1,8 +1,9 @@
 // Configuración
-const OFFICE_WIFI_NAME = "Oficina_Principal_5G"; // Referencia
+const OFFICE_WIFI_NAME = "Oficina_Principal_5G"; 
+const ADMIN_PIN = "1234"; // PIN por defecto
 const REFRESH_RATE = 1000;
 
-// Elementos del DOM
+// Elementos del DOM - Main
 const timeEl = document.getElementById('time');
 const dateEl = document.getElementById('date');
 const networkStatusEl = document.getElementById('network-status');
@@ -13,6 +14,24 @@ const employeeIdInput = document.getElementById('employee-id');
 const historyList = document.getElementById('history-list');
 const notification = document.getElementById('notification');
 const networkBlockedOverlay = document.getElementById('network-blocked');
+
+// Elementos del DOM - Admin
+const openAdminBtn = document.getElementById('open-admin');
+const closeAdminBtn = document.getElementById('close-admin');
+const adminPanel = document.getElementById('admin-panel');
+const adminLogin = document.getElementById('admin-login');
+const adminPinInput = document.getElementById('admin-pin');
+const loginBtn = document.getElementById('login-btn');
+const cancelLoginBtn = document.getElementById('cancel-login');
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+const adminLogsBody = document.getElementById('admin-logs-body');
+const adminEmployeesBody = document.getElementById('admin-employees-body');
+const newEmpNameInput = document.getElementById('new-emp-name');
+const newEmpIdInput = document.getElementById('new-emp-id');
+const addEmployeeBtn = document.getElementById('add-employee-btn');
+const exportCsvBtn = document.getElementById('export-csv');
+const clearLogsBtn = document.getElementById('clear-all-logs');
 
 // Estado de la aplicación
 let isAuthorized = false;
@@ -27,82 +46,89 @@ function updateClock() {
     dateEl.textContent = now.toLocaleDateString('es-MX', dateOptions).toUpperCase();
 }
 
-// 2. Simulación de Validación de Red
-// En un entorno real, haríamos una petición a un servidor que verifique la IP Pública.
-// Si la IP es la de la oficina, retornaría true.
+// 2. Validación de Red
 async function checkNetwork() {
-    networkTextEl.textContent = "Verificando red...";
-    networkStatusEl.className = "status-badge status-offline";
-    
-    // Simulamos un retraso de red
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    /** 
-     * NOTA PARA EL USUARIO:
-     * El navegador no permite leer el nombre del Wi-Fi por seguridad.
-     * La mejor forma de implementar esto es:
-     * 1. Verificar la IP Publica del cliente contra una lista permitida.
-     * 2. O, usar Geolocalización para asegurar que está en las coordenadas de la oficina.
-     */
-    
-    // Simulamos que el usuario ESTÁ en la red correcta para propósitos de demostración.
-    // Cambiar a false para ver el bloqueo.
+    /** En producción aquí validaríamos la IP pública contra la IP de la oficina */
     isAuthorized = true; 
 
     if (isAuthorized) {
         networkStatusEl.className = "status-badge status-online";
         networkTextEl.textContent = "CONECTADO A RED OFICINA";
         networkBlockedOverlay.style.display = 'none';
-        btnIn.disabled = false;
-        btnOut.disabled = false;
     } else {
         networkStatusEl.className = "status-badge status-offline";
         networkTextEl.textContent = "RED NO AUTORIZADA";
         networkBlockedOverlay.style.display = 'flex';
-        btnIn.disabled = true;
-        btnOut.disabled = true;
     }
 }
 
-// 3. Registro de Asistencia
+// 3. Gestión de Empleados y Registros
 function registerAttendance(type) {
     const id = employeeIdInput.value.trim();
     if (!id) {
-        showNotification("Por favor ingresa tu ID", "danger");
-        employeeIdInput.focus();
+        showNotification("Ingresa tu ID", "danger");
         return;
     }
 
+    // Verificar si el ID existe en la base de datos de empleados
+    const employees = getEmployees();
+    const employee = employees.find(e => e.id === id);
+    const displayName = employee ? employee.name : id;
+
     const entry = {
         id: id,
+        name: displayName,
         type: type,
         time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-        date: new Date().toLocaleDateString('es-MX')
+        date: new Date().toLocaleDateString('es-MX'),
+        timestamp: new Date().getTime()
     };
 
     saveToHistory(entry);
-    showNotification(`${type === 'IN' ? 'Entrada' : 'Salida'} registrada: ${id}`);
+    showNotification(`${type === 'IN' ? 'Entrada' : 'Salida'} registrada: ${displayName}`);
     employeeIdInput.value = '';
     renderHistory();
 }
 
-// 4. Persistencia (Local Storage)
+function getEmployees() {
+    return JSON.parse(localStorage.getItem('attendance_employees') || '[]');
+}
+
+function saveEmployee(name, id) {
+    const employees = getEmployees();
+    if (employees.some(e => e.id === id)) {
+        showNotification("Este ID ya existe", "danger");
+        return false;
+    }
+    employees.push({ name, id });
+    localStorage.setItem('attendance_employees', JSON.stringify(employees));
+    return true;
+}
+
+function deleteEmployee(id) {
+    let employees = getEmployees();
+    employees = employees.filter(e => e.id !== id);
+    localStorage.setItem('attendance_employees', JSON.stringify(employees));
+    renderAdminEmployees();
+}
+
+// 4. Persistencia y Renderizado
 function saveToHistory(entry) {
-    const history = JSON.parse(localStorage.getItem('attendance_history') || '[]');
-    history.unshift(entry); // Añadir al inicio
-    localStorage.setItem('attendance_history', JSON.stringify(history.slice(0, 10))); // Solo últimos 10
+    const history = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
+    history.unshift(entry);
+    localStorage.setItem('attendance_logs', JSON.stringify(history));
 }
 
 function renderHistory() {
-    const history = JSON.parse(localStorage.getItem('attendance_history') || '[]');
+    const history = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
     historyList.innerHTML = '';
-
-    history.forEach(item => {
+    // Mostrar solo los últimos 5 en la pantalla principal
+    history.slice(0, 5).forEach(item => {
         const li = document.createElement('li');
         li.className = `history-item ${item.type.toLowerCase()}`;
         li.innerHTML = `
             <div class="item-info">
-                <span class="item-time">${item.time} - ${item.id}</span>
+                <span class="item-time">${item.time} - ${item.name}</span>
                 <span class="item-type">${item.type === 'IN' ? 'Entrada' : 'Salida'}</span>
             </div>
             <div style="font-size: 0.7rem; color: #94a3b8;">${item.date}</div>
@@ -111,25 +137,124 @@ function renderHistory() {
     });
 }
 
-// 5. Utilidades
-function showNotification(message, type = "success") {
-    notification.textContent = message;
-    notification.style.background = type === "success" ? "#fff" : "#ef4444";
-    notification.style.color = type === "success" ? "#0f172a" : "#fff";
-    notification.classList.add('show');
-    
-    setTimeout(() => {
-        notification.classList.remove('show');
-    }, 3000);
+// 5. Lógica Administrativa
+function renderAdminLogs() {
+    const logs = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
+    adminLogsBody.innerHTML = '';
+    logs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${log.name} <br><small style="color:var(--text-muted)">ID: ${log.id}</small></td>
+            <td style="color:${log.type === 'IN' ? 'var(--success)' : 'var(--warning)'}">${log.type}</td>
+            <td>${log.date}</td>
+            <td>${log.time}</td>
+        `;
+        adminLogsBody.appendChild(tr);
+    });
 }
 
-// Event Listeners
+function renderAdminEmployees() {
+    const employees = getEmployees();
+    adminEmployeesBody.innerHTML = '';
+    employees.forEach(emp => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${emp.id}</td>
+            <td>${emp.name}</td>
+            <td><button class="btn-small btn-danger" onclick="deleteEmployee('${emp.id}')">Eliminar</button></td>
+        `;
+        adminEmployeesBody.appendChild(tr);
+    });
+}
+
+function exportToCSV() {
+    const logs = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
+    if (logs.length === 0) {
+        showNotification("No hay datos para exportar", "danger");
+        return;
+    }
+    
+    let csv = "ID,Nombre,Tipo,Fecha,Hora\n";
+    logs.forEach(log => {
+        csv += `${log.id},${log.name},${log.type},${log.date},${log.time}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `asistencia_dekoor_${new Date().toLocaleDateString()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 6. Event Listeners
 btnIn.addEventListener('click', () => registerAttendance('IN'));
 btnOut.addEventListener('click', () => registerAttendance('OUT'));
-document.getElementById('clear-history').addEventListener('click', () => {
-    localStorage.removeItem('attendance_history');
-    renderHistory();
+
+openAdminBtn.addEventListener('click', () => adminLogin.style.display = 'flex');
+cancelLoginBtn.addEventListener('click', () => {
+    adminLogin.style.display = 'none';
+    adminPinInput.value = '';
 });
+
+loginBtn.addEventListener('click', () => {
+    if (adminPinInput.value === ADMIN_PIN) {
+        adminLogin.style.display = 'none';
+        adminPanel.style.display = 'flex';
+        adminPinInput.value = '';
+        renderAdminLogs();
+        renderAdminEmployees();
+    } else {
+        showNotification("PIN Incorrecto", "danger");
+    }
+});
+
+closeAdminBtn.addEventListener('click', () => adminPanel.style.display = 'none');
+
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+});
+
+addEmployeeBtn.addEventListener('click', () => {
+    const name = newEmpNameInput.value.trim();
+    const id = newEmpIdInput.value.trim();
+    if (name && id) {
+        if (saveEmployee(name, id)) {
+            newEmpNameInput.value = '';
+            newEmpIdInput.value = '';
+            renderAdminEmployees();
+            showNotification("Empleado añadido");
+        }
+    } else {
+        showNotification("Completa todos los campos", "danger");
+    }
+});
+
+exportCsvBtn.addEventListener('click', exportToCSV);
+
+clearLogsBtn.addEventListener('click', () => {
+    if (confirm("¿Estás seguro de borrar todo el historial?")) {
+        localStorage.removeItem('attendance_logs');
+        renderAdminLogs();
+        renderHistory();
+    }
+});
+
+function showNotification(message, type = "success") {
+    notification.textContent = message;
+    notification.style.background = type === "success" ? "var(--primary)" : "#ef4444";
+    notification.style.color = "#fff";
+    notification.classList.add('show');
+    setTimeout(() => notification.classList.remove('show'), 3000);
+}
 
 // Inicialización
 setInterval(updateClock, 1000);
