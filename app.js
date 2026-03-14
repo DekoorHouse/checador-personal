@@ -1,5 +1,5 @@
 // Configuración
-const AUTHORIZED_IP = "2806:267:2484:85e4:68c2:b66f:882a:e565"; 
+const AUTHORIZED_PREFIX = "2806:267:2484:85e4"; // Prefijo de tu red de oficina
 const OFFICE_WIFI_NAME = "Red Dekoor House"; 
 const ADMIN_PIN = "1234"; 
 const REFRESH_RATE = 1000;
@@ -53,7 +53,12 @@ async function checkNetwork() {
         const response = await fetch('https://api64.ipify.org?format=json');
         const data = await response.json();
         const userIp = data.ip;
-        if (userIp === AUTHORIZED_IP) {
+
+        console.log("IP detectada:", userIp);
+
+        // Validación flexible: Comprobamos si la IP del usuario empieza con el prefijo de la oficina
+        // Esto soluciona el problema de IPs dinámicas dentro de la misma red WiFi
+        if (userIp.startsWith(AUTHORIZED_PREFIX)) {
             isAuthorized = true;
             networkStatusEl.className = "status-badge status-online";
             networkTextEl.textContent = "CONECTADO A RED OFICINA";
