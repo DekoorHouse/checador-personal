@@ -1,10 +1,10 @@
 // Configuración
-const AUTHORIZED_IP = "2806:267:2484:85e4:68c2:b66f:882a:e565"; // Tu IP actual
+const AUTHORIZED_IP = "2806:267:2484:85e4:68c2:b66f:882a:e565"; 
 const OFFICE_WIFI_NAME = "Red Dekoor House"; 
-const ADMIN_PIN = "1234"; // PIN por defecto
+const ADMIN_PIN = "1234"; 
 const REFRESH_RATE = 1000;
 
-// Elementos del DOM - Main
+// Elementos del DOM
 const timeEl = document.getElementById('time');
 const dateEl = document.getElementById('date');
 const networkStatusEl = document.getElementById('network-status');
@@ -16,7 +16,7 @@ const historyList = document.getElementById('history-list');
 const notification = document.getElementById('notification');
 const networkBlockedOverlay = document.getElementById('network-blocked');
 
-// Elementos del DOM - Admin
+// Admin
 const openAdminBtn = document.getElementById('open-admin');
 const closeAdminBtn = document.getElementById('close-admin');
 const adminPanel = document.getElementById('admin-panel');
@@ -34,72 +34,46 @@ const addEmployeeBtn = document.getElementById('add-employee-btn');
 const exportCsvBtn = document.getElementById('export-csv');
 const clearLogsBtn = document.getElementById('clear-all-logs');
 
-// Estado de la aplicación
 let isAuthorized = false;
 
-// 1. Reloj en tiempo real
+// 1. Reloj
 function updateClock() {
     const now = new Date();
     const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    
     timeEl.textContent = now.toLocaleTimeString('es-MX', timeOptions);
     dateEl.textContent = now.toLocaleDateString('es-MX', dateOptions).toUpperCase();
 }
 
-// 2. Validación de Red Real
+// 2. Red
 async function checkNetwork() {
-    networkTextEl.textContent = "Verificando red...";
-    
     try {
-        // Consultamos la IP pública actual del dispositivo
         const response = await fetch('https://api64.ipify.org?format=json');
-        if (!response.ok) throw new Error('Error al obtener IP');
-        
         const data = await response.json();
         const userIp = data.ip;
-
-        console.log("IP detectada:", userIp);
-
-        // Comparamos con la IP autorizada
         if (userIp === AUTHORIZED_IP) {
             isAuthorized = true;
             networkStatusEl.className = "status-badge status-online";
             networkTextEl.textContent = "CONECTADO A RED OFICINA";
             networkBlockedOverlay.style.display = 'none';
-            btnIn.disabled = false;
-            btnOut.disabled = false;
         } else {
             isAuthorized = false;
             networkStatusEl.className = "status-badge status-offline";
             networkTextEl.textContent = "RED NO AUTORIZADA";
             networkBlockedOverlay.style.display = 'flex';
-            btnIn.disabled = true;
-            btnOut.disabled = true;
-            
-            // Mostrar IP actual en el mensaje de bloqueo para referencia
             const blockedMsg = document.querySelector('#network-blocked p');
-            if (blockedMsg) {
-                blockedMsg.innerHTML = `Detectamos que estás en una red externa (${userIp}).<br>Solo puedes checar desde la red de la oficina.`;
-            }
+            if (blockedMsg) blockedMsg.innerHTML = `Red externa (${userIp}).<br>Solo para oficina.`;
         }
-    } catch (error) {
-        console.error("Error verificando red:", error);
-        networkTextEl.textContent = "ERROR DE VERIFICACIÓN";
-        isAuthorized = false;
-        // En caso de error de la API externa (ipify), bloqueamos por seguridad
+    } catch (e) {
+        console.error(e);
     }
 }
 
-// 3. Gestión de Empleados y Registros
+// 3. Asistencia
 function registerAttendance(type) {
     const id = employeeIdInput.value.trim();
-    if (!id) {
-        showNotification("Ingresa tu ID", "danger");
-        return;
-    }
+    if (!id) { showNotification("Ingresa tu ID", "danger"); return; }
 
-    // Verificar si el ID existe en la base de datos de empleados
     const employees = getEmployees();
     const employee = employees.find(e => e.id === id);
     const displayName = employee ? employee.name : id;
@@ -108,7 +82,7 @@ function registerAttendance(type) {
         id: id,
         name: displayName,
         type: type,
-        time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false }),
         date: new Date().toLocaleDateString('es-MX'),
         timestamp: new Date().getTime()
     };
@@ -119,16 +93,11 @@ function registerAttendance(type) {
     renderHistory();
 }
 
-function getEmployees() {
-    return JSON.parse(localStorage.getItem('attendance_employees') || '[]');
-}
+function getEmployees() { return JSON.parse(localStorage.getItem('attendance_employees') || '[]'); }
 
 function saveEmployee(name, id) {
     const employees = getEmployees();
-    if (employees.some(e => e.id === id)) {
-        showNotification("Este ID ya existe", "danger");
-        return false;
-    }
+    if (employees.some(e => e.id === id)) { showNotification("ID duplicado", "danger"); return false; }
     employees.push({ name, id });
     localStorage.setItem('attendance_employees', JSON.stringify(employees));
     return true;
@@ -141,7 +110,6 @@ function deleteEmployee(id) {
     renderAdminEmployees();
 }
 
-// 4. Persistencia y Renderizado
 function saveToHistory(entry) {
     const history = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
     history.unshift(entry);
@@ -151,7 +119,6 @@ function saveToHistory(entry) {
 function renderHistory() {
     const history = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
     historyList.innerHTML = '';
-    // Mostrar solo los últimos 5 en la pantalla principal
     history.slice(0, 5).forEach(item => {
         const li = document.createElement('li');
         li.className = `history-item ${item.type.toLowerCase()}`;
@@ -166,17 +133,62 @@ function renderHistory() {
     });
 }
 
-// 5. Lógica Administrativa
-function renderAdminLogs() {
+// 4. Lógica de Agrupación y Cálculo (NUEVO)
+function getGroupedData() {
     const logs = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
+    // Invertir para procesar en orden cronológico (del más viejo al más nuevo)
+    const sortedLogs = [...logs].reverse();
+    
+    const groups = {}; // keyed by "ID-Date"
+
+    sortedLogs.forEach(log => {
+        const key = `${log.id}-${log.date}`;
+        if (!groups[key]) {
+            groups[key] = {
+                id: log.id,
+                name: log.name,
+                date: log.date,
+                events: []
+            };
+        }
+        groups[key].events.push(log);
+    });
+
+    return Object.values(groups).map(group => {
+        let totalMinutes = 0;
+        let lastInTime = null;
+        let timelineText = [];
+
+        group.events.forEach(event => {
+            timelineText.push(`<span style="color:${event.type === 'IN' ? 'var(--success)' : 'var(--warning)'}">${event.type}: ${event.time}</span>`);
+            
+            if (event.type === 'IN') {
+                lastInTime = event.timestamp;
+            } else if (event.type === 'OUT' && lastInTime) {
+                const diffMs = event.timestamp - lastInTime;
+                totalMinutes += Math.floor(diffMs / (1000 * 60));
+                lastInTime = null;
+            }
+        });
+
+        const hrs = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        group.totalStr = `${hrs}h ${mins}m`;
+        group.timeline = timelineText.join(" | ");
+        return group;
+    }).reverse(); // Revertir para mostrar lo más reciente arriba
+}
+
+function renderAdminLogs() {
+    const data = getGroupedData();
     adminLogsBody.innerHTML = '';
-    logs.forEach(log => {
+    data.forEach(row => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${log.name} <br><small style="color:var(--text-muted)">ID: ${log.id}</small></td>
-            <td style="color:${log.type === 'IN' ? 'var(--success)' : 'var(--warning)'}">${log.type}</td>
-            <td>${log.date}</td>
-            <td>${log.time}</td>
+            <td>${row.name}<br><small>ID: ${row.id}</small></td>
+            <td>${row.date}</td>
+            <td style="font-size: 0.8rem;">${row.timeline}</td>
+            <td style="font-weight:bold; color:var(--primary)">${row.totalStr}</td>
         `;
         adminLogsBody.appendChild(tr);
     });
@@ -197,50 +209,31 @@ function renderAdminEmployees() {
 }
 
 function exportToCSV() {
-    const logs = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
-    if (logs.length === 0) {
-        showNotification("No hay datos para exportar", "danger");
-        return;
-    }
-    
-    let csv = "ID,Nombre,Tipo,Fecha,Hora\n";
-    logs.forEach(log => {
-        csv += `${log.id},${log.name},${log.type},${log.date},${log.time}\n`;
+    const data = getGroupedData();
+    if (data.length === 0) { showNotification("Sin datos", "danger"); return; }
+    let csv = "Empleado,ID,Fecha,Eventos,Total Tiempo\n";
+    data.forEach(r => {
+        const cleanEvents = r.timeline.replace(/<[^>]*>/g, '');
+        csv += `"${r.name}","${r.id}","${r.date}","${cleanEvents}","${r.totalStr}"\n`;
     });
-
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `asistencia_dekoor_${new Date().toLocaleDateString()}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `reporte_asistencia_${new Date().toLocaleDateString()}.csv`;
     link.click();
-    document.body.removeChild(link);
 }
 
-// 6. Event Listeners
+// Event Listeners
 btnIn.addEventListener('click', () => registerAttendance('IN'));
 btnOut.addEventListener('click', () => registerAttendance('OUT'));
-
 openAdminBtn.addEventListener('click', () => adminLogin.style.display = 'flex');
-cancelLoginBtn.addEventListener('click', () => {
-    adminLogin.style.display = 'none';
-    adminPinInput.value = '';
-});
-
+cancelLoginBtn.addEventListener('click', () => { adminLogin.style.display = 'none'; adminPinInput.value = ''; });
 loginBtn.addEventListener('click', () => {
     if (adminPinInput.value === ADMIN_PIN) {
-        adminLogin.style.display = 'none';
-        adminPanel.style.display = 'flex';
-        adminPinInput.value = '';
-        renderAdminLogs();
-        renderAdminEmployees();
-    } else {
-        showNotification("PIN Incorrecto", "danger");
-    }
+        adminLogin.style.display = 'none'; adminPanel.style.display = 'flex';
+        adminPinInput.value = ''; renderAdminLogs(); renderAdminEmployees();
+    } else { showNotification("PIN Incorrecto", "danger"); }
 });
-
 closeAdminBtn.addEventListener('click', () => adminPanel.style.display = 'none');
 
 tabBtns.forEach(btn => {
@@ -255,37 +248,24 @@ tabBtns.forEach(btn => {
 addEmployeeBtn.addEventListener('click', () => {
     const name = newEmpNameInput.value.trim();
     const id = newEmpIdInput.value.trim();
-    if (name && id) {
-        if (saveEmployee(name, id)) {
-            newEmpNameInput.value = '';
-            newEmpIdInput.value = '';
-            renderAdminEmployees();
-            showNotification("Empleado añadido");
-        }
-    } else {
-        showNotification("Completa todos los campos", "danger");
+    if (name && id && saveEmployee(name, id)) {
+        newEmpNameInput.value = ''; newEmpIdInput.value = '';
+        renderAdminEmployees(); showNotification("Añadido");
     }
 });
 
 exportCsvBtn.addEventListener('click', exportToCSV);
-
 clearLogsBtn.addEventListener('click', () => {
-    if (confirm("¿Estás seguro de borrar todo el historial?")) {
-        localStorage.removeItem('attendance_logs');
-        renderAdminLogs();
-        renderHistory();
-    }
+    if (confirm("¿Borrar todo?")) { localStorage.removeItem('attendance_logs'); renderAdminLogs(); renderHistory(); }
 });
 
-function showNotification(message, type = "success") {
-    notification.textContent = message;
-    notification.style.background = type === "success" ? "var(--primary)" : "#ef4444";
-    notification.style.color = "#fff";
+function showNotification(m, t = "success") {
+    notification.textContent = m;
+    notification.style.background = t === "success" ? "var(--primary)" : "#ef4444";
     notification.classList.add('show');
     setTimeout(() => notification.classList.remove('show'), 3000);
 }
 
-// Inicialización
 setInterval(updateClock, 1000);
 updateClock();
 checkNetwork();
