@@ -1,5 +1,5 @@
 // Configuración
-const AUTHORIZED_PREFIX = "2806:267:2484:85e4"; // Prefijo de tu red de oficina
+const AUTHORIZED_PREFIX = "2806:267:2484"; // Prefijo más amplio (3 bloques)
 const OFFICE_WIFI_NAME = "Red Dekoor House"; 
 const ADMIN_PIN = "1234"; 
 const REFRESH_RATE = 1000;
