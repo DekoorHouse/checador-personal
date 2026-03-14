@@ -7,8 +7,8 @@
     --success: #10b981;
     --warning: #fb8c00;
     --danger: #ef4444;
-    --bg-dark: #122b3e; /* Azul profundo Dekoor (fondo del logo) */
-    --card-bg: rgba(255, 255, 255, 0.05);
+    --bg-dark: #193C4E; /* Azul exacto del logo Dekoor */
+    --card-bg: rgba(255, 255, 255, 0.03);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --glass-border: rgba(255, 255, 255, 0.1);
