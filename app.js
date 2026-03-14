@@ -1,5 +1,6 @@
 // Configuración
-const OFFICE_WIFI_NAME = "Oficina_Principal_5G"; 
+const AUTHORIZED_IP = "2806:267:2484:85e4:68c2:b66f:882a:e565"; // Tu IP actual
+const OFFICE_WIFI_NAME = "Red Dekoor House"; 
 const ADMIN_PIN = "1234"; // PIN por defecto
 const REFRESH_RATE = 1000;
 
@@ -46,19 +47,47 @@ function updateClock() {
     dateEl.textContent = now.toLocaleDateString('es-MX', dateOptions).toUpperCase();
 }
 
-// 2. Validación de Red
+// 2. Validación de Red Real
 async function checkNetwork() {
-    /** En producción aquí validaríamos la IP pública contra la IP de la oficina */
-    isAuthorized = true; 
+    networkTextEl.textContent = "Verificando red...";
+    
+    try {
+        // Consultamos la IP pública actual del dispositivo
+        const response = await fetch('https://api64.ipify.org?format=json');
+        if (!response.ok) throw new Error('Error al obtener IP');
+        
+        const data = await response.json();
+        const userIp = data.ip;
 
-    if (isAuthorized) {
-        networkStatusEl.className = "status-badge status-online";
-        networkTextEl.textContent = "CONECTADO A RED OFICINA";
-        networkBlockedOverlay.style.display = 'none';
-    } else {
-        networkStatusEl.className = "status-badge status-offline";
-        networkTextEl.textContent = "RED NO AUTORIZADA";
-        networkBlockedOverlay.style.display = 'flex';
+        console.log("IP detectada:", userIp);
+
+        // Comparamos con la IP autorizada
+        if (userIp === AUTHORIZED_IP) {
+            isAuthorized = true;
+            networkStatusEl.className = "status-badge status-online";
+            networkTextEl.textContent = "CONECTADO A RED OFICINA";
+            networkBlockedOverlay.style.display = 'none';
+            btnIn.disabled = false;
+            btnOut.disabled = false;
+        } else {
+            isAuthorized = false;
+            networkStatusEl.className = "status-badge status-offline";
+            networkTextEl.textContent = "RED NO AUTORIZADA";
+            networkBlockedOverlay.style.display = 'flex';
+            btnIn.disabled = true;
+            btnOut.disabled = true;
+            
+            // Mostrar IP actual en el mensaje de bloqueo para referencia
+            const blockedMsg = document.querySelector('#network-blocked p');
+            if (blockedMsg) {
+                blockedMsg.innerHTML = `Detectamos que estás en una red externa (${userIp}).<br>Solo puedes checar desde la red de la oficina.`;
+            }
+        }
+    } catch (error) {
+        console.error("Error verificando red:", error);
+        networkTextEl.textContent = "ERROR DE VERIFICACIÓN";
+        isAuthorized = false;
+        // En caso de error de la API externa (ipify), bloqueamos por seguridad
     }
 }
 
