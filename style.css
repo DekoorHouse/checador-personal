@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
 
 :root {
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --secondary: #0ea5e9;
+    --primary: #fb8c00; /* Naranja Dekoor */
+    --primary-hover: #ef6c00;
+    --secondary: #263238; /* Gris oscuro Dekoor */
     --success: #10b981;
-    --warning: #f59e0b;
+    --warning: #fb8c00;
     --danger: #ef4444;
-    --bg-dark: #0f172a;
+    --bg-dark: #122b3e; /* Azul profundo Dekoor (fondo del logo) */
     --card-bg: rgba(255, 255, 255, 0.05);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
@@ -59,12 +59,14 @@ body {
 }
 
 .logo {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 10px;
-    background: linear-gradient(to right, #818cf8, #38bdf8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.logo img {
+    max-width: 180px;
+    height: auto;
 }
 
 .status-badge {
