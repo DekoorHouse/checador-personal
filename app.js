@@ -92,6 +92,23 @@ function registerAttendance(type) {
     const finalId = employee ? employee.id : inputVal;
     const displayName = employee ? employee.name : inputVal;
 
+    // Validación de registros duplicados (NUEVO)
+    const history = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
+    // Buscamos el último registro de ESTE empleado específico
+    const lastRegistration = history.find(log => log.id === finalId);
+
+    if (lastRegistration) {
+        if (lastRegistration.type === type) {
+            const typeMsg = type === 'IN' ? 'ENTRADA' : 'SALIDA';
+            showNotification(`Error: Ya tienes una ${typeMsg} registrada.`, "danger");
+            return;
+        }
+    } else if (type === 'OUT') {
+        // Si no tiene registros previos, no puede marcar salida primero
+        showNotification("Error: Debes marcar ENTRADA primero.", "danger");
+        return;
+    }
+
     const entry = {
         id: finalId,
         name: displayName,
