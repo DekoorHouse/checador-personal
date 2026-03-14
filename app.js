@@ -13,6 +13,7 @@ const btnIn = document.getElementById('btn-in');
 const btnOut = document.getElementById('btn-out');
 const employeeIdInput = document.getElementById('employee-id');
 const historyList = document.getElementById('history-list');
+const clearMainBtn = document.querySelector('.history-title button') || document.getElementById('clear-recent');
 const notification = document.getElementById('notification');
 const networkBlockedOverlay = document.getElementById('network-blocked');
 
@@ -35,6 +36,7 @@ const exportCsvBtn = document.getElementById('export-csv');
 const clearLogsBtn = document.getElementById('clear-all-logs');
 
 let isAuthorized = false;
+let recentHidden = false; // Estado para ocultar registros recientes temporalmente
 
 // 1. Reloj
 function updateClock() {
@@ -126,6 +128,11 @@ function saveToHistory(entry) {
 function renderHistory() {
     const history = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
     historyList.innerHTML = '';
+    
+    // Si el usuario pidió limpiar la vista, no renderizamos nada en la principal
+    if (recentHidden) return;
+
+    // Mostrar solo los últimos 5 en la pantalla principal
     history.slice(0, 5).forEach(item => {
         const li = document.createElement('li');
         li.className = `history-item ${item.type.toLowerCase()}`;
@@ -260,6 +267,22 @@ addEmployeeBtn.addEventListener('click', () => {
         renderAdminEmployees(); showNotification("Añadido");
     }
 });
+
+// Evento para el botón LIMPIAR de la pantalla principal (solo oculta la vista)
+document.addEventListener('click', (e) => {
+    if (e.target && (e.target.textContent === 'LIMPIAR' || e.target.id === 'clear-recent')) {
+        recentHidden = true;
+        renderHistory();
+        showNotification("Vista principal limpia");
+    }
+});
+
+// Al checar alguien nuevo, volvemos a mostrar la lista
+const originalRegister = registerAttendance;
+registerAttendance = function(type) {
+    recentHidden = false;
+    originalRegister(type);
+};
 
 exportCsvBtn.addEventListener('click', exportToCSV);
 clearLogsBtn.addEventListener('click', () => {
