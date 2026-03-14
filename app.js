@@ -71,15 +71,22 @@ async function checkNetwork() {
 
 // 3. Asistencia
 function registerAttendance(type) {
-    const id = employeeIdInput.value.trim();
-    if (!id) { showNotification("Ingresa tu ID", "danger"); return; }
+    const inputVal = employeeIdInput.value.trim();
+    if (!inputVal) { showNotification("Ingresa tu ID o Nombre", "danger"); return; }
 
     const employees = getEmployees();
-    const employee = employees.find(e => e.id === id);
-    const displayName = employee ? employee.name : id;
+    // Buscamos si el input coincide con un ID o con un Nombre (ignora mayúsculas)
+    const employee = employees.find(e => 
+        e.id === inputVal || 
+        e.name.toLowerCase() === inputVal.toLowerCase()
+    );
+
+    // Si encontramos al empleado, usamos sus datos oficiales, si no, lo que se escribió
+    const finalId = employee ? employee.id : inputVal;
+    const displayName = employee ? employee.name : inputVal;
 
     const entry = {
-        id: id,
+        id: finalId,
         name: displayName,
         type: type,
         time: new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -136,13 +143,13 @@ function renderHistory() {
 // 4. Lógica de Agrupación y Cálculo (NUEVO)
 function getGroupedData() {
     const logs = JSON.parse(localStorage.getItem('attendance_logs') || '[]');
-    // Invertir para procesar en orden cronológico (del más viejo al más nuevo)
     const sortedLogs = [...logs].reverse();
     
-    const groups = {}; // keyed by "ID-Date"
+    const groups = {}; 
 
     sortedLogs.forEach(log => {
-        const key = `${log.id}-${log.date}`;
+        // Agrupamos por Nombre y Fecha para ser más flexibles si el ID varió
+        const key = `${log.name.toLowerCase()}-${log.date}`;
         if (!groups[key]) {
             groups[key] = {
                 id: log.id,
