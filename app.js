@@ -262,15 +262,25 @@ function exportToCSV() {
 // Event Listeners
 btnIn.addEventListener('click', () => registerAttendance('IN'));
 btnOut.addEventListener('click', () => registerAttendance('OUT'));
-openAdminBtn.addEventListener('click', () => adminLogin.style.display = 'flex');
-cancelLoginBtn.addEventListener('click', () => { adminLogin.style.display = 'none'; adminPinInput.value = ''; });
+openAdminBtn.addEventListener('click', () => {
+    adminLogin.style.display = 'flex';
+    setTimeout(() => adminPinInput.focus(), 100); // Auto-focus en el PIN
+});
+cancelLoginBtn.addEventListener('click', () => { 
+    adminLogin.style.display = 'none'; 
+    adminPinInput.value = ''; 
+    employeeIdInput.focus(); // Regresar focus al ID principal
+});
 loginBtn.addEventListener('click', () => {
     if (adminPinInput.value === ADMIN_PIN) {
         adminLogin.style.display = 'none'; adminPanel.style.display = 'flex';
         adminPinInput.value = ''; renderAdminLogs(); renderAdminEmployees();
-    } else { showNotification("PIN Incorrecto", "danger"); }
+    } else { showNotification("PIN Incorrecto", "danger"); adminPinInput.focus(); }
 });
-closeAdminBtn.addEventListener('click', () => adminPanel.style.display = 'none');
+closeAdminBtn.addEventListener('click', () => {
+    adminPanel.style.display = 'none';
+    employeeIdInput.focus(); // Regresar focus al ID principal
+});
 
 tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -278,6 +288,11 @@ tabBtns.forEach(btn => {
         tabContents.forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab).classList.add('active');
+        
+        // Auto-focus en el nombre si seleccionan pestaña empleados
+        if (btn.dataset.tab === 'tab-employees') {
+            setTimeout(() => newEmpNameInput.focus(), 100);
+        }
     });
 });
 
@@ -322,3 +337,6 @@ setInterval(updateClock, 1000);
 updateClock();
 checkNetwork();
 renderHistory();
+
+// Auto-focus inicial
+setTimeout(() => employeeIdInput.focus(), 500);
